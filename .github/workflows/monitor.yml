@@ -1,0 +1,29 @@
+name: BioLinkGuard Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger Monitor
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.MONITOR_URL }}")
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Monitor completed (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ Monitor failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
